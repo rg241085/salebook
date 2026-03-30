@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dryfu Business Diary - Cloud</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: #eef2f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .app-container {
+            background: #ffffff;
+            width: 100%;
+            max-width: 400px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-height: 850px;
+        }
+
+        .header {
+            background-color: #2563eb;
+            color: white;
+            text-align: center;
+            padding: 18px;
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .header i {
+            margin-right: 8px;
+        }
+
+        .calendar-section {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+            background: #fafafa;
+        }
+
+        .month-nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .month-nav button {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            color: #2563eb;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .month-nav h3 {
+            color: #1e293b;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .days-header {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            text-align: center;
+            font-size: 0.75rem;
+            color: #64748b;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .days-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            grid-template-rows: repeat(6, 42px);
+            gap: 1px;
+            background: #e2e8f0;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .day {
+            display: flex;
+            justify-content: flex-start;
+            align-items: flex-start;
+            padding: 4px;
+            cursor: pointer;
+            background: #ffffff;
+            color: #334155;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .day.selected {
+            background-color: #eff6ff;
+            color: #2563eb;
+            font-weight: 700;
+            box-shadow: inset 0 0 0 1px #3b82f6;
+        }
+
+        .day.has-doc {
+            border-bottom: 3px solid #3b82f6;
+        }
+
+        .day.empty {
+            cursor: default;
+            background: #f1f5f9;
+            color: transparent;
+        }
+
+        .details-section {
+            padding: 20px;
+            background-color: #ffffff;
+            flex-grow: 1;
+            overflow-y: auto;
+        }
+
+        .selected-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .add-btn {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            width: 38px;
+            height: 38px;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+
+        .upload-box {
+            border: 1px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 15px;
+            display: none;
+            justify-content: center;
+            gap: 25px;
+            background: #f8fafc;
+            margin-bottom: 15px;
+        }
+
+        .upload-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            cursor: pointer;
+        }
+
+        .upload-option .icon {
+            width: 45px;
+            height: 45px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        .upload-option .camera {
+            background-color: #3b82f6;
+        }
+
+        .upload-option .gallery {
+            background-color: #8b5cf6;
+        }
+
+        .upload-option span {
+            font-size: 0.75rem;
+            color: #475569;
+        }
+
+        .doc-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+        }
+
+        .img-wrapper {
+            position: relative;
+            width: 100%;
+            height: 110px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
+
+        .doc-item {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            cursor: pointer;
+        }
+
+        .delete-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: #ef4444;
+            color: white;
+            border: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 4px;
+            font-size: 10px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Loader */
+        #loader {
+            display: none;
+            text-align: center;
+            color: #2563eb;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(15, 23, 42, 0.95);
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            max-width: 95%;
+            max-height: 80%;
+            border-radius: 8px;
+        }
+
+        .modal-date {
+            color: white;
+            margin-top: 15px;
+            font-weight: 600;
+        }
+
+        .nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 1.2rem;
+        }
+
+        .prev-btn {
+            left: 10px;
+        }
+
+        .next-btn {
+            right: 10px;
+        }
+
+        @media (max-width: 500px) {
+            body {
+                padding: 0;
+                align-items: flex-start;
+            }
+
+            .app-container {
+                max-width: 100%;
+                height: 100vh;
+                max-height: none;
+                border-radius: 0;
+            }
+        }
+    </style>
+    <link rel="icon" href="https://www.dryfu.com/favicon.ico">
+    <link rel="apple-touch-icon" href="https://www.dryfu.com/favicon.ico">
+    <meta name="theme-color" content="#2563eb">
+
+    <link rel="manifest"
+        href="data:application/json;base64,ewogICJuYW1lIjogIkRyeWZ1IERpYXJ5IiwKICAic2hvcnRfbmFtZSI6ICJEcnlmdSIsCiAgInN0YXJ0X3VybCI6ICIuIiwKICAiZGlzcGxheSI6ICJzdGFuZGFsb25lIiwKICAiYmFja2dyb3VuZF9jb2xvciI6ICIjZmZmZmZmIiwKICAidGhlbWVfY29sb3ciOiAiIzI1NjNlYiIsCiAgImljb25zIjogWwogICAgewogICAgICAic3JjIjogImh0dHBzOi8vd3d3LmRyeWZ1LmNvbS9mYXZpY29uLmljbyIsCiAgICAgICJzaXplcyI6ICI1MTJ4NTEyIiwKICAgICAgInR5cGUiOiAiaW1hZ2UveC1pY29uIgogICAgfQogIF0KfQ==">
+</head>
+
+<body>
+
+    <div class="app-container">
+        <div class="header"><i class="fa-solid fa-cloud"></i> Dryfu Cloud Diary</div>
+
+        <div class="calendar-section">
+            <div class="month-nav">
+                <button onclick="changeMonth(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+                <h3 id="monthDisplay"></h3>
+                <button onclick="changeMonth(1)"><i class="fa-solid fa-chevron-right"></i></button>
+            </div>
+            <div class="days-header">
+                <div>Sun</div>
+                <div>Mon</div>
+                <div>Tue</div>
+                <div>Wed</div>
+                <div>Thu</div>
+                <div>Fri</div>
+                <div>Sat</div>
+            </div>
+            <div class="days-grid" id="calendarDays"></div>
+        </div>
+
+        <div class="details-section">
+            <div id="loader"><i class="fa-solid fa-spinner fa-spin"></i> Saving to Cloud...</div>
+
+            <div id="selectedState">
+                <div class="selected-header">
+                    <h4 id="displayDate">Tarik Chunein</h4>
+                    <button class="add-btn" id="addBtn"><i class="fa-solid fa-plus"></i></button>
+                </div>
+
+                <div class="upload-box" id="uploadBox">
+                    <div class="upload-option" onclick="document.getElementById('cameraInput').click()">
+                        <div class="icon camera"><i class="fa-solid fa-camera"></i></div>
+                        <span>Camera</span>
+                    </div>
+                    <div class="upload-option" onclick="document.getElementById('galleryInput').click()">
+                        <div class="icon gallery"><i class="fa-solid fa-image"></i></div>
+                        <span>Gallery</span>
+                    </div>
+                </div>
+
+                <div id="savedDocsContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="cameraInput" style="display:none" accept="image/*" capture="environment">
+    <input type="file" id="galleryInput" style="display:none" accept="image/*">
+
+    <div id="imageModal" class="modal" onclick="closeModal(event)">
+        <button class="nav-btn prev-btn" onclick="slide(-1, event)"><i class="fa-solid fa-chevron-left"></i></button>
+        <img class="modal-content" id="fullImage">
+        <div class="modal-date" id="modalDateText"></div>
+        <button class="nav-btn next-btn" onclick="slide(1, event)"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+
+    <script>
+        // --- 1. Firebase Setup ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyA8jR1LbYSRmm-fAo3i5QChPqfCk1VUKgU",
+            authDomain: "salebook-7405d.firebaseapp.com",
+            projectId: "salebook-7405d",
+            databaseURL: "https://salebook-7405d-default-rtdb.firebaseio.com/", // Hand-filled based on your project ID
+            storageBucket: "salebook-7405d.firebasestorage.app",
+            messagingSenderId: "193240940932",
+            appId: "1:193240940932:web:46fd3793cb7e2f10deddd1"
+        };
+
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
+
+        // --- 2. Variables ---
+        let nav = 0;
+        let selectedDate = "";
+        let cloudData = {}; // Locally cached cloud data
+        let globalImages = [];
+        let globalIdx = 0;
+
+        // --- 3. Load All Data from Firebase ---
+        function syncFromCloud() {
+            db.ref("documents").on('value', (snapshot) => {
+                cloudData = snapshot.val() || {};
+                renderCalendar();
+                if (selectedDate) renderDocs(selectedDate);
+            });
+        }
+
+        // --- 4. Calendar Logic ---
+        function renderCalendar() {
+            const dt = new Date();
+            if (nav !== 0) dt.setMonth(new Date().getMonth() + nav);
+            const month = dt.getMonth(), year = dt.getFullYear();
+
+            document.getElementById('monthDisplay').innerText = `${new Intl.DateTimeFormat('en-US', { month: 'short' }).format(dt)} ${year}`;
+
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            const grid = document.getElementById('calendarDays');
+            grid.innerHTML = '';
+
+            for (let i = 1; i <= 42; i++) {
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'day';
+                if (i > firstDay && i <= firstDay + daysInMonth) {
+                    const dayNum = i - firstDay;
+                    dayDiv.innerText = dayNum;
+                    const dateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${dayNum.toString().padStart(2, '0')}`;
+
+                    if (cloudData[dateStr]) dayDiv.classList.add('has-doc');
+                    if (dateStr === selectedDate) dayDiv.classList.add('selected');
+
+                    dayDiv.onclick = () => {
+                        selectedDate = dateStr;
+                        document.getElementById('displayDate').innerText = selectedDate;
+                        renderCalendar();
+                        renderDocs(dateStr);
+                    };
+                } else {
+                    dayDiv.classList.add('empty');
+                }
+                grid.appendChild(dayDiv);
+            }
+        }
+
+        window.changeMonth = (val) => { nav += val; renderCalendar(); };
+
+        // --- 5. Save/Delete Logic ---
+        async function savePhoto(event) {
+            const file = event.target.files[0];
+            if (!file || !selectedDate) return;
+
+            document.getElementById('loader').style.display = 'block';
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const img = new Image();
+                img.onload = async () => {
+                    // Compress
+                    const canvas = document.createElement('canvas');
+                    const MAX = 1000;
+                    let w = img.width, h = img.height;
+                    if (w > h) { if (w > MAX) { h *= MAX / w; w = MAX; } }
+                    else { if (h > MAX) { w *= MAX / h; h = MAX; } }
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    const base64 = canvas.toDataURL('image/jpeg', 0.6);
+
+                    // Push to Firebase
+                    const ref = db.ref(`documents/${selectedDate}`);
+                    const currentDocs = cloudData[selectedDate] || [];
+                    currentDocs.push(base64);
+                    await ref.set(currentDocs);
+
+                    document.getElementById('loader').style.display = 'none';
+                    document.getElementById('uploadBox').style.display = 'none';
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        window.deleteImg = async (idx, event) => {
+            event.stopPropagation();
+            if (!confirm("Delete this photo?")) return;
+            const currentDocs = cloudData[selectedDate] || [];
+            currentDocs.splice(idx, 1);
+            if (currentDocs.length === 0) await db.ref(`documents/${selectedDate}`).remove();
+            else await db.ref(`documents/${selectedDate}`).set(currentDocs);
+        };
+
+        // --- 6. Render Documents ---
+        function renderDocs(dateStr) {
+            const container = document.getElementById('savedDocsContainer');
+            const docs = cloudData[dateStr] || [];
+            if (docs.length === 0) {
+                container.innerHTML = `<p style="color:#94a3b8; text-align:center; margin-top:20px;">No documents.</p>`;
+                return;
+            }
+            let html = '<div class="doc-grid">';
+            docs.forEach((img, idx) => {
+                html += `
+                <div class="img-wrapper" onclick="openFull('${dateStr}', ${idx})">
+                    <img src="${img}" class="doc-item">
+                    <button class="delete-btn" onclick="deleteImg(${idx}, event)">X</button>
+                </div>`;
+            });
+            container.innerHTML = html + '</div>';
+        }
+
+        // --- 7. Slider Logic (Inter-date) ---
+        function openFull(dateStr, idx) {
+            globalImages = [];
+            const sortedDates = Object.keys(cloudData).sort();
+            sortedDates.forEach(d => {
+                cloudData[d].forEach((img, i) => {
+                    globalImages.push({ date: d, data: img });
+                });
+            });
+            globalIdx = globalImages.findIndex(item => item.date === dateStr && item.data === cloudData[dateStr][idx]);
+            updateModal();
+            document.getElementById('imageModal').style.display = 'flex';
+        }
+
+        function updateModal() {
+            const item = globalImages[globalIdx];
+            document.getElementById('fullImage').src = item.data;
+            document.getElementById('modalDateText').innerText = item.date;
+        }
+
+        window.slide = (dir, e) => {
+            if (e) e.stopPropagation();
+            globalIdx += dir;
+            if (globalIdx < 0) globalIdx = 0;
+            if (globalIdx >= globalImages.length) globalIdx = globalImages.length - 1;
+            updateModal();
+        };
+
+        window.closeModal = (e) => { if (e.target.id === 'imageModal' || e.target.id === 'fullImage') document.getElementById('imageModal').style.display = 'none'; };
+
+        // Swiping
+        let startX = 0;
+        document.getElementById('imageModal').addEventListener('touchstart', e => startX = e.touches[0].clientX);
+        document.getElementById('imageModal').addEventListener('touchend', e => {
+            const diff = startX - e.changedTouches[0].clientX;
+            if (Math.abs(diff) > 50) slide(diff > 0 ? 1 : -1);
+        });
+
+        // --- 8. Init ---
+        document.getElementById('addBtn').onclick = () => {
+            const box = document.getElementById('uploadBox');
+            box.style.display = box.style.display === 'flex' ? 'none' : 'flex';
+        };
+        document.getElementById('cameraInput').onchange = savePhoto;
+        document.getElementById('galleryInput').onchange = savePhoto;
+
+        syncFromCloud();
+    </script>
+</body>
+
+</html>
