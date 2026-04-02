@@ -49,11 +49,14 @@
         .doc-item { width: 100%; height: 100%; object-fit: cover; }
         .delete-btn { position: absolute; top: 6px; right: 6px; background: #ef4444; color: white; border: none; width: 24px; height: 24px; border-radius: 6px; cursor: pointer; font-size: 10px; display: flex; justify-content: center; align-items: center; }
 
-        /* Full Image Modal Styles (Added Back) */
-        .modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); flex-direction: column; justify-content: center; align-items: center; }
-        .modal-content { max-width: 95%; max-height: 80%; border-radius: 8px; }
-        .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; }
+        /* Full Image Modal Styles */
+        .modal { display: none; position: fixed; z-index: 10000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); flex-direction: column; justify-content: center; align-items: center; }
+        .modal-content { max-width: 95%; max-height: 80%; border-radius: 8px; transition: transform 0.3s ease; } /* Added transition for smooth rotate */
+        .nav-btn { position: absolute; top: 50%; transform: translateY(-50%); background: rgba(255,255,255,0.2); color: white; border: none; width: 45px; height: 45px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; z-index: 10001; }
         .prev-btn { left: 10px; } .next-btn { right: 10px; }
+        
+        /* New Rotate Button */
+        .rotate-btn { position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); color: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; z-index: 10001; display: flex; justify-content: center; align-items: center; }
 
         @media (max-width: 500px) { body { align-items: flex-start; } #appContainer { max-width: 100%; height: 100vh; max-height: none; border-radius: 0; } }
     </style>
@@ -111,7 +114,8 @@
     <input type="file" id="cameraInput" style="display:none" accept="image/*" capture="environment" onchange="savePhoto(event)">
     <input type="file" id="galleryInput" style="display:none" accept="image/*" onchange="savePhoto(event)">
 
-    <div id="imageModal" class="modal" onclick="closeModal(event)">
+    <div id="imageModal" class="modal">
+        <button class="rotate-btn" onclick="rotateImage(event)"><i class="fa-solid fa-rotate-right"></i></button>
         <button class="nav-btn prev-btn" onclick="slide(-1, event)"><i class="fa-solid fa-chevron-left"></i></button>
         <img class="modal-content" id="fullImage">
         <button class="nav-btn next-btn" onclick="slide(1, event)"><i class="fa-solid fa-chevron-right"></i></button>
@@ -132,7 +136,8 @@
 
         let nav = 0, selectedDate = "", cloudData = {};
         let lockTimer, logoutTimer;
-        let globalImages = [], globalIdx = 0; // Added for Modal
+        let globalImages = [], globalIdx = 0; 
+        let currentRotation = 0; // Added for tracking rotation
 
         // --- SECURITY TIMERS ---
         function resetTimers() {
@@ -219,7 +224,6 @@
             if (docs.length === 0) { container.innerHTML = `<p style="text-align:center; color:#94a3b8; margin-top:20px;">Empty folder.</p>`; return; }
             let html = '<div class="doc-grid">';
             docs.forEach((img, i) => {
-                // Click function added back to open full image
                 html += `<div class="img-wrapper" onclick="openFull('${date}',${i})"><img src="${img}" class="doc-item"><button class="delete-btn" onclick="deleteImg(${i},event)"><i class="fa-solid fa-xmark"></i></button></div>`;
             });
             container.innerHTML = html + '</div>';
@@ -251,16 +255,58 @@
         window.changeMonth = (v) => { nav += v; renderCalendar(); };
         window.toggleUpload = () => { const b = document.getElementById('uploadBox'); b.style.display = b.style.display === 'flex' ? 'none' : 'flex'; };
 
-        // --- IMAGE MODAL LOGIC (Added Back) ---
+        // --- IMAGE MODAL & SWIPE LOGIC ---
         function openFull(date, i) {
             globalImages = [];
             Object.keys(cloudData).sort().forEach(d => cloudData[d].forEach(img => globalImages.push({d, img})));
             globalIdx = globalImages.findIndex(item => item.d === date && item.img === cloudData[date][i]);
             updateModal(); document.getElementById('imageModal').style.display = 'flex';
         }
-        function updateModal() { document.getElementById('fullImage').src = globalImages[globalIdx].img; }
-        window.slide = (v, e) => { e.stopPropagation(); globalIdx = Math.max(0, Math.min(globalImages.length - 1, globalIdx + v)); updateModal(); };
-        window.closeModal = (e) => { if(e.target.id==='imageModal' || e.target.id==='fullImage') document.getElementById('imageModal').style.display='none'; };
+
+        function updateModal() { 
+            currentRotation = 0; // Reset rotation when changing images
+            const imgEl = document.getElementById('fullImage');
+            imgEl.style.transform = `rotate(0deg)`;
+            imgEl.src = globalImages[globalIdx].img; 
+        }
+
+        window.slide = (v, e) => { 
+            if(e) e.stopPropagation(); 
+            globalIdx = Math.max(0, Math.min(globalImages.length - 1, globalIdx + v)); 
+            updateModal(); 
+        };
+
+        window.rotateImage = (e) => {
+            e.stopPropagation();
+            currentRotation += 90;
+            document.getElementById('fullImage').style.transform = `rotate(${currentRotation}deg)`;
+        };
+
+        // Close Modal by clicking outside
+        document.getElementById('imageModal').addEventListener('click', function(e) {
+            if(e.target.id === 'imageModal') {
+                this.style.display = 'none';
+            }
+        });
+
+        // Mobile Swipe Setup
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        const modalEl = document.getElementById('imageModal');
+        modalEl.addEventListener('touchstart', e => {
+            touchStartX = e.changedTouches[0].screenX;
+        }, false);
+
+        modalEl.addEventListener('touchend', e => {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        }, false);
+
+        function handleSwipe() {
+            if (touchEndX < touchStartX - 50) slide(1); // Swipe Left
+            if (touchEndX > touchStartX + 50) slide(-1); // Swipe Right
+        }
 
     </script>
 </body>
