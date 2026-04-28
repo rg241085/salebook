@@ -6,7 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dryfu Management System (LIVE)</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    <link rel="manifest" href="manifest.json">
+   
+    <meta name="theme-color" content="#2563eb">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3143/3143160.png">
+    <meta name="theme-color" content="#2563eb">
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
@@ -909,6 +913,20 @@
     </div>
 
     <div id="printArea"></div>
+    <div id="installPopup"
+        style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: white; padding: 20px; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); z-index: 10000; width: 90%; max-width: 350px; text-align: center;">
+        <i class="fa-solid fa-download" style="font-size: 2.5rem; color: #2563eb; margin-bottom: 15px;"></i>
+        <h3 style="margin-bottom: 5px; color: #1e293b;">Install Dryfu App</h3>
+        <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 20px;">Apne home screen se direct aur fast access
+            ke liye app install karein!</p>
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <button onclick="hideInstallPopup()"
+                style="flex: 1; padding: 10px; border: 1px solid #cbd5e1; background: transparent; border-radius: 10px; cursor: pointer; color: #475569; font-weight: 600;">Cancel</button>
+            <button id="installBtn"
+                style="flex: 1; padding: 10px; border: none; background: #2563eb; border-radius: 10px; cursor: pointer; color: white; font-weight: 600;">Install
+                Now</button>
+        </div>
+    </div>
 
     <script>
         // --- 1. FIREBASE SETUP ---
@@ -1571,6 +1589,53 @@
             if (currentViewingIndex === null) return;
             preparePrintArea([appData[currentFolder].files[currentViewingIndex]]); window.print();
         }
+        // --- PWA & CUSTOM INSTALL POPUP LOGIC ---
+
+        // 1. Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker Registered!', reg.scope))
+                    .catch(err => console.error('Service Worker Registration Failed!', err));
+            });
+        }
+
+        // 2. Handle Custom Install Prompt
+        let deferredPrompt;
+        const installPopup = document.getElementById('installPopup');
+        const installBtn = document.getElementById('installBtn');
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Chrome default mini-infobar ko rokein
+            e.preventDefault();
+            // Event ko save karein taaki baad mein trigger kar sakein
+            deferredPrompt = e;
+            // Apna custom popup dikhayein
+            installPopup.style.display = 'block';
+        });
+
+        // 3. User clicks "Install Now"
+        installBtn.addEventListener('click', async () => {
+            installPopup.style.display = 'none'; // Popup hide karein
+            if (deferredPrompt) {
+                deferredPrompt.prompt(); // Browser ka asli install prompt layein
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User selected: ${outcome}`);
+                deferredPrompt = null;
+            }
+        });
+
+        // 4. Cancel button function
+        window.hideInstallPopup = () => {
+            installPopup.style.display = 'none';
+        };
+
+        // 5. Jab app successfully install ho jaye
+        window.addEventListener('appinstalled', () => {
+            deferredPrompt = null;
+            console.log('Dryfu App installed successfully!');
+        });
+
     </script>
 </body>
 
