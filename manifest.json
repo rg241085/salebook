@@ -1,0 +1,17 @@
+{
+  "name": "Dryfu Management",
+  "short_name": "Dryfu",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#eef2f6",
+  "theme_color": "#2563eb",
+  "description": "Smart Secure Management System for Dryfu",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3143/3143160.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
