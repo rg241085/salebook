@@ -1328,6 +1328,50 @@
             }
         });
 
+        // NAYA: Paste (Ctrl+V) se direct Screenshot/Image upload karne ke liye
+        document.addEventListener('paste', async function (e) {
+            // Check karein ki 'Party Hisab' tab open hai aur koi folder khula hua hai
+            if (currentActiveTab !== 'hisab' || currentFolder === '' || document.getElementById('folder-view').style.display !== 'block') {
+                return;
+            }
+
+            const items = (e.clipboardData || window.clipboardData).items;
+            let filesToUpload = [];
+
+            // Clipboard data me se files (images) dhundhein
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].kind === 'file') {
+                    let file = items[i].getAsFile();
+                    if (file) {
+                        filesToUpload.push(file);
+                    }
+                }
+            }
+
+            // Agar clipboard me image mili toh upload process shuru karein
+            if (filesToUpload.length > 0) {
+                e.preventDefault(); // Browser ka default paste behaviour rokein
+                
+                const loadingMsg = document.getElementById('loadingMsgHisab');
+                loadingMsg.style.display = 'block';
+
+                for (let i = 0; i < filesToUpload.length; i++) {
+                    loadingMsg.innerText = `⏳ Screenshot save ho raha hai (${i + 1}/${filesToUpload.length})... Kripya rukiye.`;
+                    try { 
+                        // Aapke pehle se bane hue upload function ko call kar rahe hain
+                        await processHisabFile(filesToUpload[i]); 
+                    }
+                    catch (err) { 
+                        alert("Upload error: " + err); 
+                        break; 
+                    }
+                }
+                
+                loadingMsg.style.display = 'none';
+                renderHisabFiles(); // Files ko reload karein
+            }
+        });
+
         // NAYA: Folder Rename Function
         async function renameFolder(oldName, event) {
             if (event) event.stopPropagation(); // Agar click se call ho to foldar na khule
