@@ -7,7 +7,7 @@
     <title>Dryfu Management System (LIVE)</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="manifest" href="manifest.json">
-   
+
     <meta name="theme-color" content="#2563eb">
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3143/3143160.png">
     <meta name="theme-color" content="#2563eb">
@@ -1243,7 +1243,8 @@
         async function saveHisabDataToFirebase() {
             const user = auth.currentUser;
             if (user) {
-                await db.ref(`hisab_folders/${user.uid}`).set(appData);
+                // Pura folder tree replace karne ki jagah siraf update method use karein
+                await db.ref(`hisab_folders/${user.uid}`).update(appData);
             }
         }
 
@@ -1351,22 +1352,22 @@
             // Agar clipboard me image mili toh upload process shuru karein
             if (filesToUpload.length > 0) {
                 e.preventDefault(); // Browser ka default paste behaviour rokein
-                
+
                 const loadingMsg = document.getElementById('loadingMsgHisab');
                 loadingMsg.style.display = 'block';
 
                 for (let i = 0; i < filesToUpload.length; i++) {
                     loadingMsg.innerText = `⏳ Screenshot save ho raha hai (${i + 1}/${filesToUpload.length})... Kripya rukiye.`;
-                    try { 
+                    try {
                         // Aapke pehle se bane hue upload function ko call kar rahe hain
-                        await processHisabFile(filesToUpload[i]); 
+                        await processHisabFile(filesToUpload[i]);
                     }
-                    catch (err) { 
-                        alert("Upload error: " + err); 
-                        break; 
+                    catch (err) {
+                        alert("Upload error: " + err);
+                        break;
                     }
                 }
-                
+
                 loadingMsg.style.display = 'none';
                 renderHisabFiles(); // Files ko reload karein
             }
